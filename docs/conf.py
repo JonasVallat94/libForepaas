@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# sample documentation build configuration file, created by
+# libForepaas documentation build configuration file, created by
 # sphinx-quickstart on Mon Apr 16 21:22:43 2012.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -40,7 +40,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'sample'
+project = u'libForepaas'
 copyright = u'2012, Kenneth Reitz'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -164,7 +164,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'sampledoc'
+htmlhelp_basename = 'libForepaasdoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -183,7 +183,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'sample.tex', u'sample Documentation',
+  ('index', 'libForepaas.tex', u'libForepaas Documentation',
    u'Kenneth Reitz', 'manual'),
 ]
 
@@ -213,7 +213,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'sample', u'sample Documentation',
+    ('index', 'libForepaas', u'libForepaas Documentation',
      [u'Kenneth Reitz'], 1)
 ]
 
@@ -227,8 +227,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'sample', u'sample Documentation',
-   u'Kenneth Reitz', 'sample', 'One line description of project.',
+  ('index', 'libForepaas', u'libForepaas Documentation',
+   u'Kenneth Reitz', 'libForepaas', 'One line description of project.',
    'Miscellaneous'),
 ]
 

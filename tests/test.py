@@ -2,5 +2,4 @@
 
 import sample
 
-sample.hmm()
-sample.testPrint()
+print(sample.get_hmm())

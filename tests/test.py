@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import sample
+import libForepaas
 
-print(sample.get_hmm())
+print(libForepaas.get_hmm())

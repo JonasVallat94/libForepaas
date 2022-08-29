@@ -12,7 +12,7 @@ with open('LICENSE') as f:
     license = f.read()
 
 setup(
-    name='Common library forepaas',
+    name='libForepaas',
     version='0.3.0',
     description='Common library package for forepaas',
     long_description=readme,

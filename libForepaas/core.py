@@ -13,10 +13,6 @@ def addToDf(df, values):
         df[list(df.keys())[x]].append(values[x])
     return df
 
-def decryptValue(encryptedMessage, key):
-    fernet = Fernet(key)
-    return fernet.decrypt(encryptedMessage.encode()).decode()
-
 def insertDataIntoTable(df, tableName, connectPath=None):
     if len(df[list(df.keys())[0]])>0:
         connectPath = "dwh/data_prim/"+tableName if connectPath==None else connectPath
@@ -28,6 +24,17 @@ def insertDataIntoTable(df, tableName, connectPath=None):
 
 def updateErrorReports(cn, source):
     cn.query("UPDATE report_workflow SET data_added='True' WHERE status='FAILED' AND source='"+source+"' AND data_added='False'")
+    
+def newFernetKey():
+    return str(Fernet.generate_key()).split("'")[1]
+    
+def encryptValue(decryptedMessage, key):
+    key = Fernet(key)
+    return key.encrypt(decryptedMessage.encode()).decode()
+
+def decryptValue(encryptedMessage, key):
+    key = Fernet(key)
+    return key.decrypt(encryptedMessage.encode()).decode()
     
 def testPrint():
     print("testPrint")

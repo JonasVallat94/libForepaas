@@ -12,13 +12,13 @@ with open('LICENSE') as f:
     license = f.read()
 
 setup(
-    name='libForepaas',
-    version='0.2.0',
-    description='Sample package for Python-Guide.org',
+    name='Common library forepaas',
+    version='0.3.0',
+    description='Common library package for forepaas',
     long_description=readme,
-    author='Kenneth Reitz',
-    author_email='me@kennethreitz.com',
-    url='https://github.com/kennethreitz/libForepaasmod',
+    author='Jonas Vallat',
+    author_email='jvallat@synotis.ch',
+    url='https://github.com/JonasVallat94/libForepaas.git',
     license=license,
     packages=find_packages(exclude=('tests', 'docs'))
 )

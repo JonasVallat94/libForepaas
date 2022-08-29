@@ -13,7 +13,7 @@ with open('LICENSE') as f:
 
 setup(
     name='libForepaas',
-    version='0.3.0',
+    version='0.4.0',
     description='Common library package for forepaas',
     long_description=readme,
     author='Jonas Vallat',

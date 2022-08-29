@@ -36,8 +36,12 @@ def decryptValue(encryptedMessage, key):
     key = Fernet(key)
     return key.decrypt(encryptedMessage.encode()).decode()
 
-def getDictSensorOriginsToMeasures(cn):
-    sensors = cn.query("SELECT sensor.id_sensor_origin, sensor_measure.id_sensor_measure FROM sensor INNER JOIN sensor_measure ON sensor.id_sensor=sensor_measure.id_sensor")
+def getDictSensorOriginsToMeasures(cn, source=None, idUsageCategory=None):
+    if source==None:
+        sensors = cn.query("SELECT sensor.id_sensor_origin, sensor_measure.id_sensor_measure FROM sensor INNER JOIN sensor_measure ON sensor.id_sensor=sensor_measure.id_sensor")
+    else:
+        sensors = cn.query("SELECT sensor.id_sensor_origin, sensor_measure.id_sensor_measure FROM source INNER JOIN sensor ON sensor.id_source=source.id_source INNER JOIN sensor_measure ON sensor.id_sensor=sensor_measure.id_sensor WHERE source.name='"+source+("'" if idUsageCategory is None else "' AND id_usage_category = '"+idUsageCategory+"'"))
+
     sensor_origins_to_measures = {}
     for x in range(len(sensors)):
         id_sensor_origin = sensors["id_sensor_origin"][x]

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from cryptography.fernet import Fernet
 import libForepaas
 
-print(libForepaas.get_hmm())
+libForepaas.testPrint()

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import datetime
 from cryptography.fernet import Fernet
-#from forepaas.worker.connect import connect
-#from forepaas.worker.connector import bulk_insert
+from forepaas.worker.connect import connect
+from forepaas.worker.connector import bulk_insert
 import pandas as pd
 
 def getToday():

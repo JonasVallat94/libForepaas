@@ -1,0 +1,160 @@
+from forepaas.worker.connect import connect
+import datetime
+import logging
+import importlib  
+import imp
+import libForepaas
+
+logger = logging.getLogger(__name__)
+
+def sendAndResetReportDF(df=None):
+    #if df!=None:
+    #    libForepaas.insertDataIntoTable(df, "report_sensor_measure")
+    df = {"id" : [], "source" : [], "id_sensor_measure" : [], "nb_inputs" : [], "nb_actions" : [], "retrieval_date" : [], "lastupdate" : []}
+    return df
+
+def customfunc(event):
+    logger.info("Begin function customfunc")
+    
+    #load report_sensor_measure for tables where there isn't any unique treatment to do
+    libForepaas.reportSensorMeasureRegularProcess("API_DORMAKABBA", "connected_lock_measure")
+    libForepaas.reportSensorMeasureRegularProcess("BYES/ESMART", "technics")
+    libForepaas.reportSensorMeasureRegularProcess("API_CARVELO2GO", "cargobike_trip")
+    libForepaas.reportSensorMeasureRegularProcess("API_PUBLIBIKE", "bike_station_state")
+    libForepaas.reportSensorMeasureRegularProcess("PUBLIBIKE", "bike_trip")
+    libForepaas.reportSensorMeasureRegularProcess("API_VILLIGER", "container_pickup")
+    libForepaas.reportSensorMeasureRegularProcess("API_VILLIGER", "container_state")
+    libForepaas.reportSensorMeasureRegularProcess("BOXUP", "sharedgame_usage")
+
+    #tables with uniques operations to do
+    #ballot_campaign_proposals, ballot_website_measure, charge_cycle_measure, charging_station_state
+
+    ######################## Ekklesia report ballot_campaign_proposals ########################
+    #Initialise values
+    nbDays, threshold, timestamp, xDaysAgo, today, dfReport, cn, sensorData = libForepaas.initReportValues()
+    source = "API_EKKLESIA"
+    yDaysAgo =  (datetime.datetime.now() - datetime.timedelta(days = nbDays*2)).strftime('%Y-%m-%d')
+
+    #Get older votes 
+    ballot_campaign_proposals_data = cn.query("SELECT * FROM ballot_campaign_proposals WHERE lastupdate >'" + yDaysAgo + "' AND lastupdate <'" + xDaysAgo + "'")
+    nb_inputs_before=len(ballot_campaign_proposals_data)
+    sensorToCatDict={}
+    for x in range(0, nb_inputs_before):
+        id_endurl_webpage = ballot_campaign_proposals_data["id_endurl_webpage"][x]
+        id_sensor_measure = cn.query("SELECT * FROM ballot_campaign WHERE id_endurl_webpage ='" + id_endurl_webpage + "'")["id_sensor_measure"][0]
+        sensorToCatDict, id_usage_category = libForepaas.getUsageCategoryFromSensorMeasure(cn, sensorToCatDict, id_sensor_measure)
+
+        nb_votes_before = ballot_campaign_proposals_data["value"][x]
+        nb_votes_before = 0 if nb_votes_before==None else int(nb_votes_before)
+
+        key = id_sensor_measure + "-" + id_usage_category
+        if key in sensorData.keys():
+            sensorData[key][1]+=nb_votes_before
+        else:
+            sensorData[key] = [0, nb_votes_before, 0]
+
+    #Get recent votes 
+    ballot_campaign_proposals_data = cn.query("SELECT * FROM ballot_campaign_proposals WHERE lastupdate >'" + xDaysAgo + "' AND lastupdate <'" + today + "'")
+    nb_inputs = len(ballot_campaign_proposals_data)
+    for x in range(0, nb_inputs):
+        id_endurl_webpage = ballot_campaign_proposals_data["id_endurl_webpage"][x]
+        id_sensor_measure = cn.query("SELECT * FROM ballot_campaign WHERE id_endurl_webpage ='" + id_endurl_webpage + "'")["id_sensor_measure"][0]
+        sensorToCatDict, id_usage_category = libForepaas.getUsageCategoryFromSensorMeasure(cn, sensorToCatDict, id_sensor_measure)
+
+        nb_votes_now = ballot_campaign_proposals_data["value"][x]
+        nb_votes_now = 0 if nb_votes_now==None else int(nb_votes_now)
+
+        key = id_sensor_measure + "-" + id_usage_category
+        if key in sensorData.keys():
+            sensorData[key][0]+=1
+            sensorData[key][2]+=nb_votes_now
+        else:
+            sensorData[key] = [1, 0, nb_votes_now]
+
+    #Default values if no data was found
+    if len(sensorData.keys())==0:
+        id_endurl_webpage = cn.query("SELECT * FROM ballot_campaign_proposals ORDER BY lastupdate DESC LIMIT 1")["id_endurl_webpage"][0]
+        id_sensor_measure = cn.query("SELECT * FROM ballot_campaign WHERE id_endurl_webpage ='" + id_endurl_webpage + "'")["id_sensor_measure"][0]
+        id_usage_category = cn.query("SELECT * FROM sensor_measure WHERE id_sensor_measure= '"+ id_sensor_measure +"'")["id_usage_category"][0]
+        sensorData[id_sensor_measure+"-"+id_usage_category] = [0, 0, 0]
+        
+    #store/insert data
+    dfReport = libForepaas.reportDataToDF(sensorData, source, xDaysAgo, dfReport, nb_inputs, timestamp)
+    dfReport = sendAndResetReportDF(dfReport)
+
+    ######################## Ekklesia report ballot_website_measure ########################
+    source = "GOOGLE_ANA_EKKLESIA"
+    sensorData={}
+
+    #Get data
+    ballot_website_measure_data = cn.query("SELECT * FROM ballot_website_measure WHERE lastupdate >'" + xDaysAgo + "' AND lastupdate <'" + today + "'")
+    nb_inputs = len(ballot_website_measure_data)
+    for x in range(0, nb_inputs):
+        id_endurl_webpage = ballot_website_measure_data["id_endurl_webpage"][x]
+        nbr_webpage_views = cn.query("SELECT CAST(nbr_webpage_views as int) FROM ballot_website_measure WHERE lastupdate >'" + xDaysAgo + "' AND lastupdate <'" + today + "'")["nbr_webpage_views"][x]
+        id_sensor_measure = cn.query("SELECT * FROM ballot_website WHERE id_endurl_webpage ='" + id_endurl_webpage + "'")["id_sensor_measure"][0]
+        sensorToCatDict, id_usage_category = libForepaas.getUsageCategoryFromSensorMeasure(cn, sensorToCatDict, id_sensor_measure)
+
+        sensorData = libForepaas.addToSensorDataDict(sensorData, id_sensor_measure, id_usage_category, nbr_webpage_views)
+
+    #Default values if no data was found
+    if len(sensorData.keys())==0:
+        id_endurl_webpage = cn.query("SELECT * FROM ballot_website_measure ORDER BY lastupdate DESC LIMIT 1")["id_endurl_webpage"][0]
+        id_sensor_measure = cn.query("SELECT * FROM ballot_website WHERE id_endurl_webpage ='" + id_endurl_webpage + "'")["id_sensor_measure"][0]
+        id_usage_category = cn.query("SELECT * FROM sensor_measure WHERE id_sensor_measure= '"+ id_sensor_measure +"'")["id_usage_category"][0]
+        sensorData[id_sensor_measure+"-"+id_usage_category] = 0
+
+    #Store/insert data
+    dfReport = libForepaas.reportDataToDF(sensorData, source, xDaysAgo, dfReport, nb_inputs, timestamp)
+    dfReport = sendAndResetReportDF(dfReport)
+        
+    
+    ######################## Get zaptech report charge_cycle_measure ########################
+    #Initialise values
+    nbDays, threshold, timestamp, xDaysAgo, today, dfReport, cn, sensorData = libForepaas.initReportValues()
+    source = "API_ZAPTEC"
+    sensorMeasureList=[]
+
+    #Get data
+    charge_cycle_measure_data = cn.query("SELECT * FROM charge_cycle_measure WHERE lastupdate >'" + xDaysAgo + "' AND lastupdate <'" + today + "'")
+    nb_inputs = len(charge_cycle_measure_data)
+    sensorToCatDict={}
+    for x in range(0, nb_inputs):
+        id_charge = charge_cycle_measure_data["id_charge"][x]
+        id_sensor_measure = cn.query("SELECT * FROM charge_cycle WHERE id_charge ='" + id_charge + "'")["id_sensor_measure"][0]
+        sensorToCatDict, id_usage_category = libForepaas.getUsageCategoryFromSensorMeasure(cn, sensorToCatDict, id_sensor_measure)
+
+        if id_sensor_measure not in sensorMeasureList:
+            nb_actions = cn.query("SELECT COUNT(*) FROM charge_cycle WHERE id_sensor_measure= '"+ id_sensor_measure +"' AND lastupdate >'" + xDaysAgo + "' AND lastupdate <'" + today + "'")["count"][0]
+            sensorMeasureList.append(id_sensor_measure)
+        else:
+            nb_actions=0
+                
+        sensorData = libForepaas.addToSensorDataDict(sensorData, id_sensor_measure, id_usage_category, nb_actions)
+
+    #Default values if no data was found
+    sensorData = libForepaas.getDefaultReportValues(cn, sensorData, "charge_cycle")
+        
+    #store/insert data
+    dfReport = libForepaas.reportDataToDF(sensorData, source, xDaysAgo, dfReport, nb_inputs, timestamp)
+    dfReport = sendAndResetReportDF(dfReport)
+    
+    ######################## get zaptech report charging_station_state ########################
+    source = "API_ZAPTEC"
+    sensorData={}
+
+    #Get data
+    sensorData, nb_inputs = libForepaas.getDataForReportSensorMeasure(cn, "charging_station_state", today, xDaysAgo, sensorData)
+
+    #Default values if no data was found
+    if len(sensorData.keys())==0:
+        id_sensor_measure = cn.query("SELECT * FROM charging_station_state ORDER BY lastupdate DESC LIMIT 1")["id_sensor_measure"][0]
+        id_usage_category = cn.query("SELECT * FROM sensor_measure WHERE id_sensor_measure= '"+ id_sensor_measure +"'")["id_usage_category"][0]
+        sensorData[id_sensor_measure+"-"+id_usage_category] = 0
+        
+    #Store/insert data
+    dfReport = libForepaas.reportDataToDF(sensorData, source, xDaysAgo, dfReport, nb_inputs, timestamp)
+    dfReport["nb_actions"] = [None] * len(dfReport)
+    dfReport = sendAndResetReportDF(dfReport)
+    
+    logger.info("END function customfunc")

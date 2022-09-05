@@ -60,7 +60,7 @@ def getDictSensorOriginsToMeasures(cn, source=None, idUsageCategory=None):
 
 def sendAndResetReportDF(df=None):
     if df!=None:
-        libForepaas.insertDataIntoTable(df, "report_sensor_measure")
+        insertDataIntoTable(df, "report_sensor_measure")
     df = {"id" : [], "source" : [], "id_sensor_measure" : [], "nb_inputs" : [], "nb_actions" : [], "retrieval_date" : [], "lastupdate" : []}
     return df
 
@@ -79,7 +79,7 @@ def reportDataToDF(sensorData, source, xDaysAgo, df, nb_inputs, timestamp):
         nb_actions = sensorData[sensor]
         id = source + "_" + id_sensor_measure + "_" + xDaysAgo
         
-        df = libForepaas.addToDf(df, [id, source, id_sensor_measure, nb_inputs, nb_actions, xDaysAgo, timestamp])
+        df = addToDf(df, [id, source, id_sensor_measure, nb_inputs, nb_actions, xDaysAgo, timestamp])
     return df
     
 #Get id_usage_category of a given id_sensor_measure. Keep track of already done queries
@@ -91,7 +91,7 @@ def getUsageCategoryFromSensorMeasure(cn, sensorToCatDict, id_sensor_measure):
         sensorToCatDict[id_sensor_measure] = id_usage_category
     return sensorToCatDict, id_usage_category
 
-    sensorData = libForepaas.getDefaultReportValues(sensorData, "technics")
+    sensorData = getDefaultReportValues(sensorData, "technics")
 
 #If sensorData is empty, get default values (load_report_sensor_measure)
 def getDefaultReportValues(cn, sensorData, tableName):
@@ -106,10 +106,10 @@ def initReportValues():
     nbDays      = int(os.getenv('DAYS_RANGE'))
     threshold   = int(os.getenv('THRESHOLD'))
 
-    timestamp = libForepaas.getToday()
+    timestamp = getToday()
     xDaysAgo =  (datetime.datetime.now() - datetime.timedelta(days = nbDays)).strftime('%Y-%m-%d')
     today = datetime.datetime.now().strftime('%Y-%m-%d')
-    dfReport = libForepaas.sendAndResetReportDF()
+    dfReport = sendAndResetReportDF()
     cn = connect("dwh/data_prim/")
     sensorData={}
 
@@ -122,28 +122,28 @@ def getDataForReportSensorMeasure(cn, tableName, today, xDaysAgo, sensorData):
     sensorToCatDict={}
     for x in range(0, nb_inputs):
         id_sensor_measure = data["id_sensor_measure"][x]
-        sensorToCatDict, id_usage_category = libForepaas.getUsageCategoryFromSensorMeasure(cn, sensorToCatDict, id_sensor_measure)
+        sensorToCatDict, id_usage_category = getUsageCategoryFromSensorMeasure(cn, sensorToCatDict, id_sensor_measure)
         
-        sensorData = libForepaas.addToSensorDataDict(sensorData, id_sensor_measure, id_usage_category)
+        sensorData = addToSensorDataDict(sensorData, id_sensor_measure, id_usage_category)
         
     return sensorData, nb_inputs
 
 #full process of extracting and treating data from a table and insert it into report_sensor_measure
 def reportSensorMeasureRegularProcess(source, tableName):
     #Initialise values
-    nbDays, threshold, timestamp, xDaysAgo, today, dfReport, cn, sensorData = libForepaas.initReportValues()
+    nbDays, threshold, timestamp, xDaysAgo, today, dfReport, cn, sensorData = initReportValues()
     
     #Get data
-    sensorData, nb_inputs = libForepaas.getDataForReportSensorMeasure(cn, tableName, today, xDaysAgo, sensorData)
+    sensorData, nb_inputs = getDataForReportSensorMeasure(cn, tableName, today, xDaysAgo, sensorData)
 
     #Default values if no data was found
-    sensorData = libForepaas.getDefaultReportValues(cn, sensorData, tableName)
+    sensorData = getDefaultReportValues(cn, sensorData, tableName)
         
     #Store data
-    dfReport = libForepaas.reportDataToDF(sensorData, source, xDaysAgo, dfReport, nb_inputs, timestamp)
+    dfReport = reportDataToDF(sensorData, source, xDaysAgo, dfReport, nb_inputs, timestamp)
 
     #insert data
-    libForepaas.sendAndResetReportDF(dfReport)
+    sendAndResetReportDF(dfReport)
     
 def testPrint():
     print("testPrint")

@@ -11,7 +11,7 @@ with open('LICENSE') as f:
 
 setup(
     name='libForepaas',
-    version='1.2',
+    version='1.2.1',
     description='Common library package for forepaas',
     long_description=readme,
     author='Jonas Vallat',

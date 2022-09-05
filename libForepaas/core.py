@@ -82,6 +82,7 @@ def reportDataToDF(sensorData, source, xDaysAgo, df, nb_inputs, timestamp):
         df = libForepaas.addToDf(df, [id, source, id_sensor_measure, nb_inputs, nb_actions, xDaysAgo, timestamp])
     return df
     
+#Get id_usage_category of a given id_sensor_measure. Keep track of already done queries
 def getUsageCategoryFromSensorMeasure(cn, sensorToCatDict, id_sensor_measure):
     if id_sensor_measure in sensorToCatDict.keys():
         id_usage_category = sensorToCatDict[id_sensor_measure]
@@ -92,6 +93,7 @@ def getUsageCategoryFromSensorMeasure(cn, sensorToCatDict, id_sensor_measure):
 
     sensorData = libForepaas.getDefaultReportValues(sensorData, "technics")
 
+#If sensorData is empty, get default values (load_report_sensor_measure)
 def getDefaultReportValues(cn, sensorData, tableName):
     if len(sensorData.keys())==0:
         id_sensor_measure = cn.query("SELECT * FROM " + tableName + " ORDER BY lastupdate DESC LIMIT 1")["id_sensor_measure"][0]
@@ -99,6 +101,7 @@ def getDefaultReportValues(cn, sensorData, tableName):
         sensorData[id_sensor_measure+"-"+id_usage_category] = 0
     return sensorData
 
+#(re)initialise values for the script(s) load_report_sensor_measure
 def initReportValues():
     nbDays      = int(os.getenv('DAYS_RANGE'))
     threshold   = int(os.getenv('THRESHOLD'))
@@ -112,7 +115,7 @@ def initReportValues():
 
     return nbDays, threshold, timestamp, xDaysAgo, today, dfReport, cn, sensorData
 
-
+#Extract data from a table to later insert it into report_sensor_measure
 def getDataForReportSensorMeasure(cn, tableName, today, xDaysAgo, sensorData):
     data = cn.query("SELECT * FROM " + tableName + " WHERE lastupdate >'" + xDaysAgo + "' AND lastupdate <'" + today + "'")
     nb_inputs = len(data)
@@ -125,6 +128,7 @@ def getDataForReportSensorMeasure(cn, tableName, today, xDaysAgo, sensorData):
         
     return sensorData, nb_inputs
 
+#full process of extracting and treating data from a table and insert it into report_sensor_measure
 def reportSensorMeasureRegularProcess(source, tableName):
     #Initialise values
     nbDays, threshold, timestamp, xDaysAgo, today, dfReport, cn, sensorData = libForepaas.initReportValues()
@@ -133,7 +137,7 @@ def reportSensorMeasureRegularProcess(source, tableName):
     sensorData, nb_inputs = libForepaas.getDataForReportSensorMeasure(cn, tableName, today, xDaysAgo, sensorData)
 
     #Default values if no data was found
-    sensorData = libForepaas.getDefaultReportValues(cn, sensorData, "cargobike_trip")
+    sensorData = libForepaas.getDefaultReportValues(cn, sensorData, tableName)
         
     #Store data
     dfReport = libForepaas.reportDataToDF(sensorData, source, xDaysAgo, dfReport, nb_inputs, timestamp)

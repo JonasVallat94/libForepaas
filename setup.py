@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# Learn more: https://github.com/kennethreitz/setup.py
-
 from setuptools import setup, find_packages
 
 
@@ -13,7 +11,7 @@ with open('LICENSE') as f:
 
 setup(
     name='libForepaas',
-    version='1.0',
+    version='1.0.0',
     description='Common library package for forepaas',
     long_description=readme,
     author='Jonas Vallat',

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 from cryptography.fernet import Fernet
 from forepaas.worker.connect import connect
@@ -96,8 +95,13 @@ def getUsageCategoryFromSensorMeasure(cn, sensorToCatDict, id_sensor_measure):
 #If sensorData is empty, get default values (load_report_sensor_measure)
 def getDefaultReportValues(cn, sensorData, tableName):
     if len(sensorData.keys())==0:
-        id_sensor_measure = cn.query("SELECT * FROM " + tableName + " ORDER BY lastupdate DESC LIMIT 1")["id_sensor_measure"][0]
-        id_usage_category = cn.query("SELECT * FROM sensor_measure WHERE id_sensor_measure= '"+ id_sensor_measure +"'")["id_usage_category"][0]
+        id_sensor_measure = cn.query("SELECT * FROM " + tableName + " ORDER BY lastupdate DESC LIMIT 1")["id_sensor_measure"]
+        if len(id_sensor_measure)>0:
+            id_sensor_measure = id_sensor_measure[0]
+            id_usage_category = cn.query("SELECT * FROM sensor_measure WHERE id_sensor_measure= '"+ id_sensor_measure +"'")["id_usage_category"][0]
+        else:
+            id_sensor_measure = "None"
+            id_usage_category = "None"
         sensorData[id_sensor_measure+"-"+id_usage_category] = 0
     return sensorData
 

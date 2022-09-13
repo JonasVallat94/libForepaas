@@ -5,6 +5,27 @@ from forepaas.worker.connector import bulk_insert
 import pandas as pd
 import os
 
+#Returns a dict with all sensor.id_sensor_origin as keys and a list of the corresponding sensor_measure.id_sensor_measure as values
+#source and idUsageCategory are optinals
+#source          - only the sensors linked to the corresponding source.name will be returned
+#idUsageCategory - only the sensor_measures with the same sensor_measure.id_usage_category will be returned
+def getDictSensorOriginsToMeasures(cn, source=None, idUsageCategory=None):
+    if source==None:
+        sensors = cn.query("SELECT sensor.id_sensor_origin, sensor_measure.id_sensor_measure FROM sensor INNER JOIN sensor_measure ON sensor.id_sensor=sensor_measure.id_sensor")
+    else:
+        sensors = cn.query("SELECT sensor.id_sensor_origin, sensor_measure.id_sensor_measure FROM source INNER JOIN sensor ON sensor.id_source=source.id_source INNER JOIN sensor_measure ON sensor.id_sensor=sensor_measure.id_sensor WHERE source.name='"+source+("'" if idUsageCategory is None else "' AND id_usage_category = '"+idUsageCategory+"'"))
+
+    sensor_origins_to_measures = {}
+    for x in range(len(sensors)):
+        id_sensor_origin = sensors["id_sensor_origin"][x]
+        id_sensor_measure = sensors["id_sensor_measure"][x]
+        if id_sensor_origin!=None:
+            if id_sensor_origin in sensor_origins_to_measures.keys():
+                sensor_origins_to_measures[id_sensor_origin].append(id_sensor_measure)
+            else:
+                sensor_origins_to_measures[id_sensor_origin]=[id_sensor_measure]
+    return sensor_origins_to_measures
+    
 def getToday():
     return datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]+"Z"
 
@@ -35,27 +56,6 @@ def encryptValue(decryptedMessage, key):
 def decryptValue(encryptedMessage, key):
     key = Fernet(key)
     return key.decrypt(encryptedMessage.encode()).decode()
-
-#Returns a dict with all sensor.id_sensor_origin as keys and a list of the corresponding sensor_measure.id_sensor_measure as values
-#source and idUsageCategory are optinals
-#source          - only the sensors linked to the corresponding source.name will be returned
-#idUsageCategory - only the sensor_measures with the same sensor_measure.id_usage_category will be returned
-def getDictSensorOriginsToMeasures(cn, source=None, idUsageCategory=None):
-    if source==None:
-        sensors = cn.query("SELECT sensor.id_sensor_origin, sensor_measure.id_sensor_measure FROM sensor INNER JOIN sensor_measure ON sensor.id_sensor=sensor_measure.id_sensor")
-    else:
-        sensors = cn.query("SELECT sensor.id_sensor_origin, sensor_measure.id_sensor_measure FROM source INNER JOIN sensor ON sensor.id_source=source.id_source INNER JOIN sensor_measure ON sensor.id_sensor=sensor_measure.id_sensor WHERE source.name='"+source+("'" if idUsageCategory is None else "' AND id_usage_category = '"+idUsageCategory+"'"))
-
-    sensor_origins_to_measures = {}
-    for x in range(len(sensors)):
-        id_sensor_origin = sensors["id_sensor_origin"][x]
-        id_sensor_measure = sensors["id_sensor_measure"][x]
-        if id_sensor_origin!=None:
-            if id_sensor_origin in sensor_origins_to_measures.keys():
-                sensor_origins_to_measures[id_sensor_origin].append(id_sensor_measure)
-            else:
-                sensor_origins_to_measures[id_sensor_origin]=[id_sensor_measure]
-    return sensor_origins_to_measures
 
 def sendAndResetReportDF(df=None):
     if df!=None:
@@ -120,8 +120,8 @@ def initReportValues():
     return nbDays, threshold, timestamp, xDaysAgo, today, dfReport, cn, sensorData
 
 #Extract data from a table to later insert it into report_sensor_measure
-def getDataForReportSensorMeasure(cn, tableName, today, xDaysAgo, sensorData):
-    data = cn.query("SELECT * FROM " + tableName + " WHERE lastupdate >'" + xDaysAgo + "' AND lastupdate <'" + today + "'")
+def getDataForReportSensorMeasure(cn, tableName, today, xDaysAgo, sensorData, name_technical):
+    data = cn.query("SELECT "+tableName+".id_sensor_measure FROM " + tableName + " JOIN sensor_measure ON sensor_measure.id_sensor_measure = "+tableName+".id_sensor_measure JOIN sensor ON sensor.id_sensor=sensor_measure.id_sensor JOIN source ON sensor.id_source=source.id_source WHERE " +tableName+ ".lastupdate >'" + xDaysAgo + "' AND " +tableName+".lastupdate <'" + today + "' AND source.name_technical='"+name_technical+"'")
     nb_inputs = len(data)
     sensorToCatDict={}
     for x in range(0, nb_inputs):
@@ -138,7 +138,7 @@ def reportSensorMeasureRegularProcess(source, tableName):
     nbDays, threshold, timestamp, xDaysAgo, today, dfReport, cn, sensorData = initReportValues()
     
     #Get data
-    sensorData, nb_inputs = getDataForReportSensorMeasure(cn, tableName, today, xDaysAgo, sensorData)
+    sensorData, nb_inputs = getDataForReportSensorMeasure(cn, tableName, today, xDaysAgo, sensorData, source)
 
     #Default values if no data was found
     sensorData = getDefaultReportValues(cn, sensorData, tableName)

@@ -64,7 +64,7 @@ def sendAndResetReportDF(df=None):
     return df
 
 def addToSensorDataDict(sensorData, id_sensor_measure, id_usage_category, value=1):
-    key = id_sensor_measure + "-" + id_usage_category
+    key = id_sensor_measure + "-" + ("None" if id_usage_category==None else id_usage_category)
     if key in sensorData.keys():
         sensorData[key] += value
     else:

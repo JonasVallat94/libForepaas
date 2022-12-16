@@ -149,5 +149,5 @@ def reportSensorMeasureRegularProcess(source, tableName):
     #insert data
     sendAndResetReportDF(dfReport)
     
-def testPrint():
+def testPrint2():
     print("testPrint")
